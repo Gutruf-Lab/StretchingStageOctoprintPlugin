@@ -4,6 +4,7 @@ from __future__ import absolute_import, unicode_literals
 import re
 import octoprint.plugin
 import serial.tools.list_ports
+import os
 from os import path
 import threading
 import serial
@@ -162,14 +163,13 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 
 	def get_settings_defaults(self):
 		return dict(
-			save_path="/home/pi/",
 			stretchingstagecontroller_baud_rate=57600
 		)
 
 	def get_api_commands(self):
 		return dict(
 			fetchPorts=["type"],
-			validateSettings=["save_path", "file_name"],
+			validateSettings=["file_name"],
 			connectCOM=["serial_read_ports"],
 			disconnectCOM=[]
 		)
@@ -196,22 +196,13 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 		# create a distinct logfile for each com port that we're connected to.
 		if command == "validateSettings":
 			if "save_path" in data:
-				self._logger.info("Parameters Received. Save path is {save_path}".format(**data))
-				dir_exists = path.exists("{save_path}".format(**data))
-				if "{save_path}".format(**data)[-1] != "/":
-					self._plugin_manager.send_plugin_message(self._identifier, dict(message="path_missing_slash"))
-				else:
-					if dir_exists:
-						self._logger.info(
-							"Settings directory exists and is ready for readout. New file(s) being created.")
-						self._plugin_manager.send_plugin_message(self._identifier, dict(message="valid_filename"))
-						for p in self.comPorts:
-							p.save_path = "{save_path}{file_name}".format(**data)
-							p.handle_save_path()
-					else:
-						self._logger.warning(
-							"*******WARNING******** Save directory for Stretching Stage Controller does not exist!")
-						self._plugin_manager.send_plugin_message(self._identifier, dict(message="path_does_not_exist"))
+				self._logger.info("Save path is /home/pi/stretchingStage/".format(**data))
+				os.makedirs("/home/pi/stretchingStage/", exist_ok=True)
+				self._logger.info("New file(s) being created.")
+				self._plugin_manager.send_plugin_message(self._identifier, dict(message="valid_filename"))
+				for p in self.comPorts:
+					p.save_path = "/home/pi/stretchingStage/{file_name}".format(**data)
+					p.handle_save_path()
 
 		# The data from the plugin controls is sent across as a list. We separate and create new objs for each.
 		if command == "connectCOM":

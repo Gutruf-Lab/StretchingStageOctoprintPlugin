@@ -178,7 +178,7 @@ $(function() {
 
                 case "valid_filename":
                     notification.title =  'Filename Accepted';
-                    notification.text =  "File will be saved at " + self.settings.settings.plugins.stretchingstagecontroller.save_path();
+                    notification.text =  "File will be saved at /home/pi/stretchingStage/";
                     notification.type = "info";
                     notification.hide = true;
                     self.pathValidated(true);
@@ -233,7 +233,7 @@ $(function() {
 
         self.validateSettings = function() {
             self.updateFileName();
-            let  payload = {"save_path": self.settings.settings.plugins.stretchingstagecontroller.save_path(),
+            let  payload = {"save_path": "/home/pi/stretchingStage/",
                 "file_name": self.saveFileName()};
             OctoPrint.simpleApiCommand("stretchingstagecontroller", "validateSettings", payload)
                 .done(function(response) {
