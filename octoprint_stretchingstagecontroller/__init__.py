@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 
 import re
 import octoprint.plugin
+from octoprint.util import RepeatedTimer
 import serial.tools.list_ports
 import os
 from os import path
@@ -75,8 +76,8 @@ class CommunicationPort:
 					self._logger.info("Starting read from serial port {}...".format(self.port))
 					self._plugin_manager.send_plugin_message(self._identifier, dict(message="data_collected"))
 		if event in [octoprint.events.Events.PRINT_DONE,
-					octoprint.events.Events.PRINT_FAILED,
-					octoprint.events.Events.PRINT_CANCELLING]:
+					 octoprint.events.Events.PRINT_FAILED,
+					 octoprint.events.Events.PRINT_CANCELLING]:
 			if self.read_serial_data:
 				self.read_serial_data = False
 				self.ser.close()
@@ -89,6 +90,7 @@ class CommunicationPort:
 		before the extension '.txt'. E.g. '/home/pi/example.txt' -> '/home/pi/example_dev_ttyUSB0.txt'
 		Finally, if that file name already exists, it creates an incremented version '/home/pi/example_dev_ttyUSB0__2.txt'
 	"""
+
 	def handle_save_path(self):
 		escaped_port = re.sub('[^A-Za-z0-9]+', '_', self.port)
 		dot_index = self.save_path.index(".")
@@ -113,6 +115,7 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 							octoprint.plugin.SimpleApiPlugin):
 	stop = threading.Event()
 	comPorts = []
+	filesize_timer = None
 
 	def on_shutdown(self):
 		self.stop.set()
@@ -122,6 +125,7 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 
 	def on_after_startup(self):
 		self._logger.info("Stretching Stage controller starting up...")
+		self.filesize_timer = RepeatedTimer(10.0, self.fetch_file_sizes)
 
 	def get_assets(self):
 		return dict(
@@ -133,6 +137,7 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 		threading.Thread(target=port.serial_thread).start()
 
 	def stop_all_coms(self):
+		self.filesize_timer.cancel()
 		# We iterate over a copy of the list. Deleting while iterating across a list leads to some funky behavior.
 		for p in self.comPorts[:]:
 			self._plugin_manager.send_plugin_message(self._identifier, dict(message="com_disconnected", port=p.port))
@@ -142,7 +147,6 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 	def on_event(self, event, payload):
 		for p in self.comPorts:
 			p.on_event(event, payload)
-
 		if event == octoprint.events.Events.PRINT_STARTED:
 			self._logger.info("Print started.")
 		if event == octoprint.events.Events.PRINT_DONE:
@@ -174,6 +178,23 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 			disconnectCOM=[]
 		)
 
+	def fetch_file_sizes(self):
+		file_data = []
+		for p in self.comPorts:
+			port = {
+				"path": p.save_path,
+				"file_size": os.path.getsize(p.save_path)
+			}
+			file_data.extend(port)
+
+		self._plugin_manager.send_plugin_message(
+			self._identifier,
+			dict(
+				message="file_sizes_fetched",
+				file_data=file_data,
+			)
+		)
+
 	def on_api_command(self, command, data):
 		# Two different types of fetching ports:
 		# 1. List all com ports that we are able to establish a connection with
@@ -186,11 +207,11 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 				list_of_ports = [p.port for p in self.comPorts if p.com_connected]
 
 			self._plugin_manager.send_plugin_message(
-													self._identifier,
-													dict(
-														message="ports_fetched",
-														ports=list_of_ports,
-														type=data["type"]))
+				self._identifier,
+				dict(
+					message="ports_fetched",
+					ports=list_of_ports,
+					type=data["type"]))
 
 		# Mostly retaining Megan's code. We run validate_save_path() to handle existing files, duplicates, and to
 		# create a distinct logfile for each com port that we're connected to.
@@ -215,12 +236,12 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 						self._logger,
 						self._plugin_manager,
 						self._identifier,
-						self._settings.get_int(["stretchingstagecontroller_baud_rate"]))
-
+						self._settings.get_int(["stretchingstagecontroller_baud_rate"])
+					)
 					self.comPorts.append(new_com)
-
 				for p in self.comPorts:
 					self.start_serial_thread(p)
+				self.filesize_timer.start()
 
 		if command == "disconnectCOM":
 			self.stop_all_coms()

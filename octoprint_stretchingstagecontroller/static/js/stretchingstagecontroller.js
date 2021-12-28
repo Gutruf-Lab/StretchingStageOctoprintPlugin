@@ -15,10 +15,11 @@ $(function() {
         self.selectedPorts = ko.observableArray([]);
         self.listOfPorts = ko.observableArray([]);
         self.connectedPorts = ko.observableArray([]);
+        self.file_sizes = ko.observableArray([]);
 
         self.disabledControls = ko.pureComputed(function() {
-            return self.printerStateViewModel.isBusy() ? "disabledControls" : undefined;
-        }, this);
+                return self.printerStateViewModel.isBusy() ? "disabledControls" : undefined;
+            }, this);
 
         self.dataPortConnected = ko.observable();
         self.dataPortConnected(false);
@@ -174,6 +175,10 @@ $(function() {
                     else {
                         self.connectedPorts(data.ports);
                     }
+                    break;
+
+                case "file_sizes_fetched":
+                    self.file_sizes(data.file_data)
                     break;
 
                 case "valid_filename":

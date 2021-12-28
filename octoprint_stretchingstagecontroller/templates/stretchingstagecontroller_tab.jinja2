@@ -15,7 +15,7 @@
                     <span class="positiveText" data-bind="visible:$parent.connectedPorts().indexOf(device) != -1">[Connected]</span>
                 </p>
             </div>
-            <div class="input-append" data-bind="visible: listOfPorts().length != 0">
+            <div class="input-append">
                 <div class="controls">
                     <button class="btn btn-primary" data-bind="click:connectCOM, enable: dataPortConnected() == false">{{ _('Connect COM') }}</button>
                     <button class="btn btn-danger" data-bind="click:disconnectCOM, enable: dataPortConnected() == true">{{ _('Disconnect COM') }}</button>
@@ -36,6 +36,18 @@
     </div>
     <p class="text-center" style="margin-top:2em;" data-bind="visible: disabledControls">
         <b>Printer is busy...</b>
+    </p>
+    <p class="text-center" style="margin-top:2em;" data-bind="visible: disabledControls">
+        <div data-bind="foreach: file_sizes">
+            <p>
+                <input type="checkbox" value="" data-bind="checked:$parent.selectedPorts, value:device, enable: $parent.dataPortConnected() == false">&nbsp;
+                <span style="margin: 4px 0 0 0;display:inline-block;">
+                    <a data-bind="attr:{href:path},text:path"></a>:
+                </span>
+                <span style="display:inline-block" data-bind="text:file_size"></span>
+                <span style="display:inline-block"> bytes</span>
+            </p>
+        </div>
     </p>
 </body>
 
@@ -58,10 +70,10 @@
 <div id="sidebar_filePathNotValidated" class="modal hide fade">
     <div class="modal-header">
         <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
-        <h3 class="modal-title">Warning: File Path Not Validated</h3>
+        <h3 class="modal-title">Warning: File Name Not Validated</h3>
     </div>
     <div class="modal-body">
-        <p>To save, file path must first be validated on the Stretching Stage Controller tab. No data will be saved for this print. Would you like to continue?</p>
+        <p>To save, file name must first be validated on the Stretching Stage Controller tab. No data will be saved for this print. Would you like to continue?</p>
     </div>
     <div class="modal-footer">
         <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Cancel</button>
