@@ -170,6 +170,10 @@ $(function() {
 
                 case "ports_fetched":
                     if(data.type == "available"){
+                        // const index = data.ports.indexOf('/dev/ttyACM0');
+                        // if (index > -1) { // only splice array when item is found
+                        //   data.ports.splice(index, 1); // 2nd parameter means remove one item only
+                        // }
                         self.listOfPorts(data.ports);
                     }
                     else {

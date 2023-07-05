@@ -58,6 +58,8 @@ class CommunicationPort:
 		while True:
 			if self.read_serial_data:
 				self.f.write(self.ser.readline().decode('utf-8'))
+				self.f.flush()
+				os.fsync(self.f)
 			# If GUI is closed, stop this thread so python can exit fully
 			if self.stop.is_set():
 				self.com_connected = False
@@ -205,6 +207,8 @@ class StretchingStagePlugin(octoprint.plugin.StartupPlugin,
 				list_of_ports = [p.__dict__ for p in serial.tools.list_ports.comports()]
 			elif data["type"] == "currently_connected":
 				list_of_ports = [p.port for p in self.comPorts if p.com_connected]
+			list_of_ports = [x for x in list_of_ports if not (x['device'] == '/dev/ttyACM0')]
+			self._logger.info(list_of_ports)
 
 			self._plugin_manager.send_plugin_message(
 				self._identifier,
